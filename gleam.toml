@@ -19,6 +19,7 @@ lustre = ">= 4.3.2 and < 5.0.0"
 lustre_hx = ">= 0.1.13 and < 1.0.0"
 gleam_erlang = ">= 0.25.0 and < 1.0.0"
 gleam_otp = ">= 0.10.0 and < 1.0.0"
+mist = ">= 1.2.0 and < 2.0.0"
 
 [dev-dependencies]
 gleeunit = ">= 1.0.0 and < 2.0.0"
