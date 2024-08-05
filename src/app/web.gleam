@@ -1,7 +1,7 @@
-import app/model/context.{type Context, Context}
-import app/model/session
+import app/state/context.{type Context, Context}
+import app/state/session
 import app/views/layout
-import gleam/io
+import gleam/option.{Some}
 import gleam/result
 import lustre/element.{type Element}
 import wisp.{type Request, type Response}
@@ -36,22 +36,15 @@ fn session_middleware(
   let session =
     wisp.get_cookie(req, session.cookie_name, wisp.Signed)
     |> result.unwrap("{}")
-    |> session.decode()
+    |> session.get_or_new(ctx.session_manager)
 
-  let new_session = case session {
-    Ok(s) -> s
-    Error(_) -> session.new()
-  }
-
-  let ctx =
-    Context(..ctx, session: new_session)
-    |> io.debug()
+  let ctx = Context(..ctx, session: Some(session))
 
   handler(ctx)
   |> wisp.set_cookie(
     req,
     session.cookie_name,
-    session.session_to_json(new_session),
+    session.session_to_json(session),
     wisp.Signed,
     60 * 60 * 24,
   )

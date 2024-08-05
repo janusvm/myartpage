@@ -1,4 +1,4 @@
-import app/model/context.{type Context}
+import app/state/context.{type Context}
 import gleam/string_builder
 import wisp.{type Request, type Response}
 

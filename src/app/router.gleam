@@ -1,5 +1,5 @@
-import app/model/context.{type Context}
 import app/routes/admin
+import app/state/context.{type Context}
 import app/views/home
 import app/web
 import wisp.{type Request}
