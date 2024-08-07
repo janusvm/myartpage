@@ -1,11 +1,13 @@
 import app/router
 import app/state/context
 import gleam/erlang/process
+import logging
 import mist
 import wisp
 
 pub fn main() {
   wisp.configure_logger()
+  logging.set_level(logging.Debug)
 
   // TODO: Get key from configuration
   let secret_key_base = wisp.random_string(64)

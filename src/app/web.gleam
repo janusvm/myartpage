@@ -2,7 +2,6 @@ import app/state/context.{type Context, Context}
 import app/state/session
 import app/views/layout
 import gleam/option.{Some}
-import gleam/result
 import lustre/element.{type Element}
 import wisp.{type Request, type Response}
 
@@ -11,12 +10,12 @@ pub fn middleware(
   ctx: Context,
   handler: fn(Request, Context) -> Response,
 ) -> Response {
+  use <- wisp.rescue_crashes()
   let req = wisp.method_override(req)
   use <- wisp.serve_static(req, under: "/static", from: ctx.static_dir)
   use <- wisp.log_request(req)
-  use <- wisp.rescue_crashes()
   use req <- wisp.handle_head(req)
-  use ctx <- session_middleware(req, ctx)
+  use ctx <- set_session(req, ctx)
 
   handler(req, ctx)
 }
@@ -28,15 +27,14 @@ pub fn response(elements: List(Element(t))) -> Response {
   |> wisp.html_response(200)
 }
 
-fn session_middleware(
+fn set_session(
   req: Request,
   ctx: Context,
   handler: fn(Context) -> Response,
 ) -> Response {
   let session =
     wisp.get_cookie(req, session.cookie_name, wisp.Signed)
-    |> result.unwrap("{}")
-    |> session.get_or_new(ctx.session_manager)
+    |> session.get_or_create_session(ctx.session_manager)
 
   let ctx = Context(..ctx, session: Some(session))
 
@@ -44,8 +42,8 @@ fn session_middleware(
   |> wisp.set_cookie(
     req,
     session.cookie_name,
-    session.session_to_json(session),
+    session.serialize_session(session),
     wisp.Signed,
-    60 * 60 * 24,
+    session.timeout,
   )
 }
