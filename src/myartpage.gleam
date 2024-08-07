@@ -1,29 +1,30 @@
-import app/router
-import app/state/context
+import app/model/config
+import app/state/session
+import app/web
 import gleam/erlang/process
+import gleam/otp/supervisor
 import logging
-import mist
-import wisp
 
 pub fn main() {
-  wisp.configure_logger()
+  logging.configure()
   logging.set_level(logging.Debug)
 
-  // TODO: Get key from configuration
-  let secret_key_base = wisp.random_string(64)
-  let ctx = context.new(get_static_directory())
-  let handler = router.handle_request(_, ctx)
+  // TODO: fetch configuration from env or file
+  let config = config.defaults
+
+  let session_manager =
+    supervisor.worker(fn(_) { session.init_manager() })
+    |> supervisor.returning(fn(_, session_manager) { session_manager })
+
+  let web_server =
+    supervisor.worker(fn(session_manager) { web.init(session_manager, config) })
 
   let assert Ok(_) =
-    wisp.mist_handler(handler, secret_key_base)
-    |> mist.new()
-    |> mist.port(8080)
-    |> mist.start_http()
+    supervisor.start(fn(children) {
+      children
+      |> supervisor.add(session_manager)
+      |> supervisor.add(web_server)
+    })
 
   process.sleep_forever()
-}
-
-fn get_static_directory() {
-  let assert Ok(priv_dir) = wisp.priv_directory("myartpage")
-  priv_dir <> "/static"
 }

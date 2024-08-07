@@ -1,9 +1,10 @@
+import app/middleware
+import app/model/context.{type Context, Context}
 import app/model/id
 import app/model/user.{Login}
-import app/state/context.{type Context, Context}
 import app/state/session
+import app/utils
 import app/views/login
-import app/web
 import gleam/http.{Get, Post}
 import gleam/list
 import gleam/option.{Some}
@@ -22,10 +23,8 @@ pub fn login_routes(
   case path_segments {
     [] -> {
       case req.method {
-        Get -> [login.login_view()] |> web.response()
-
+        Get -> [login.login_view()] |> utils.response()
         Post -> attempt_login(req, ctx)
-
         _ -> wisp.method_not_allowed([Get, Post])
       }
     }
@@ -50,7 +49,11 @@ fn attempt_login(req: Request, ctx: Context) -> Response {
           let assert Some(session) = ctx.session
           let user = Login(id.new_id(), user.1)
           let redirect_url =
-            wisp.get_cookie(req, "myartpage_callback", wisp.PlainText)
+            wisp.get_cookie(
+              req,
+              middleware.callback_url_cookie_name,
+              wisp.Signed,
+            )
             |> result.unwrap("/")
 
           session.authenticate_user(user, session, ctx.session_manager)

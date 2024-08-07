@@ -3,32 +3,26 @@ import app/model/user.{type User, Visitor}
 import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Subject}
 import gleam/option.{None, Some}
-import gleam/otp/actor.{type Next}
+import gleam/otp/actor.{type Next, type StartError}
 import gleam/result
-
-// FIXME: debug timeout value (seconds)
-pub const timeout = 10
-
-pub const cookie_name = "session"
 
 pub opaque type Session {
   Session(id: Id(Session), user: User)
 }
 
-pub opaque type SessionManager {
-  SessionManager(subject: Subject(Message))
-}
+pub type SessionManager =
+  Subject(SessionMsg)
 
-type SessionStore =
-  Dict(Id(Session), Session)
-
-type Message {
+pub type SessionMsg {
   Get(session_id: Id(Session), reply_with: Subject(Result(Session, Nil)))
   Create(session: Session)
   Authenticate(session: Session, user: User)
   Drop(session_id: Id(Session))
   Reset
 }
+
+type SessionStore =
+  Dict(Id(Session), Session)
 
 pub fn get_user(session: Session) -> User {
   session.user
@@ -44,10 +38,8 @@ pub fn get_or_create_session(
 ) -> Session {
   let session =
     session_cookie
-    |> result.map(id.id_from_string)
-    |> result.flatten()
-    |> result.map(get_session(_, session_manager))
-    |> result.flatten()
+    |> result.then(id.id_from_string)
+    |> result.then(get_session(_, session_manager))
 
   case session {
     Ok(session) -> session
@@ -55,21 +47,20 @@ pub fn get_or_create_session(
   }
 }
 
-pub fn init_manager() -> SessionManager {
-  let assert Ok(subject) = actor.start(dict.new(), handle_message)
-  SessionManager(subject)
+pub fn init_manager() -> Result(SessionManager, StartError) {
+  actor.start(dict.new(), handle_message)
 }
 
 pub fn get_session(
   session_id: Id(Session),
   session_manager: SessionManager,
 ) -> Result(Session, Nil) {
-  actor.call(session_manager.subject, Get(session_id, _), 10)
+  actor.call(session_manager, Get(session_id, _), 10)
 }
 
 pub fn create_session(session_manager: SessionManager) -> Session {
   let new_session = Session(id.new_id(), Visitor)
-  actor.send(session_manager.subject, Create(new_session))
+  actor.send(session_manager, Create(new_session))
   new_session
 }
 
@@ -78,13 +69,13 @@ pub fn authenticate_user(
   session: Session,
   session_manager: SessionManager,
 ) {
-  actor.send(session_manager.subject, Authenticate(session, user))
+  actor.send(session_manager, Authenticate(session, user))
 }
 
 fn handle_message(
-  message: Message,
+  message: SessionMsg,
   sessions: SessionStore,
-) -> Next(Message, SessionStore) {
+) -> Next(SessionMsg, SessionStore) {
   let new_state = case message {
     Get(session_id, subject) -> {
       let session = dict.get(sessions, session_id)
