@@ -1,28 +1,32 @@
-import app/views/layout
-import lustre/element.{type Element}
-import wisp.{type Request, type Response}
+import app/model/config.{type AppConfig}
+import app/model/context.{type Context, Context}
+import app/router
+import app/state/session.{type SessionManager}
+import gleam/dynamic
+import gleam/erlang
+import gleam/option.{None}
+import gleam/otp/actor.{type StartError}
+import gleam/result
+import mist
+import wisp
 
-pub type Context {
-  Context(static_dir: String)
+pub fn init(session_manager: SessionManager, config: AppConfig) {
+  let ctx = Context(None, session_manager, get_priv_dir(), config)
+  let handler = router.handle_request(_, ctx)
+
+  let assert Ok(_) =
+    wisp.mist_handler(handler, config.secret_key_base)
+    |> mist.new()
+    |> mist.port(8080)
+    |> mist.start_http()
+    |> result.map_error(to_starterror)
 }
 
-pub fn middleware(
-  req: Request,
-  ctx: Context,
-  handler: fn(Request) -> Response,
-) -> Response {
-  let req = wisp.method_override(req)
-  use <- wisp.serve_static(req, under: "/static", from: ctx.static_dir)
-  use <- wisp.log_request(req)
-  use <- wisp.rescue_crashes()
-  use req <- wisp.handle_head(req)
-
-  handler(req)
+fn to_starterror(glisten_error) -> StartError {
+  actor.InitCrashed(dynamic.from(glisten_error))
 }
 
-pub fn response(elements: List(Element(t))) -> Response {
-  elements
-  |> layout.layout()
-  |> element.to_document_string_builder()
-  |> wisp.html_response(200)
+fn get_priv_dir() -> String {
+  let assert Ok(priv_dir) = erlang.priv_directory("myartpage")
+  priv_dir
 }
