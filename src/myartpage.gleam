@@ -16,9 +16,8 @@ pub fn main() {
   logging.configure()
   logging.set_level(logging.Debug)
 
-  // TODO: fetch configuration from env or file
-  let app_config = config.app_defaults()
-  let db_config = config.db_defaults()
+  let app_config = config.get_env_config()
+  let db_config = config.get_db_config(app_config)
   let assert Ok(priv_dir) = wisp.priv_directory(app_name)
   let assert Ok(_) =
     database.migrate_database(db_config, priv_dir <> database.migrations_subdir)

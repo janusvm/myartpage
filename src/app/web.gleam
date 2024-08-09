@@ -22,7 +22,7 @@ pub fn init(
   let assert Ok(_) =
     wisp.mist_handler(handler, config.secret_key_base)
     |> mist.new()
-    |> mist.port(8080)
+    |> mist.port(config.port)
     |> mist.start_http()
     |> result.map_error(to_starterror)
 }
