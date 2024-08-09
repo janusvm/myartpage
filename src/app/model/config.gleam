@@ -12,5 +12,12 @@ pub fn app_defaults() -> AppConfig {
 }
 
 pub fn db_defaults() -> DbConfig {
-  feather.Config(..feather.default_config(), file: "./myartpage-database.db")
+  // FIXME: dev config
+  feather.Config(
+    ..feather.default_config(),
+    file: "./myartpage-database.db",
+    journal_mode: feather.JournalOff,
+    synchronous: feather.SyncOff,
+    temp_store: feather.TempStoreMemory,
+  )
 }

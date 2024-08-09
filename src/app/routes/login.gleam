@@ -47,7 +47,7 @@ fn attempt_login(req: Request, ctx: Context) -> Response {
       case user == test_user {
         True -> {
           let assert Some(session) = ctx.session
-          let user = Login(id.new_id(), user.1)
+          let user = Login(id.new_id(), user.Admin, user.1, "")
           let redirect_url =
             wisp.get_cookie(
               req,

@@ -14,7 +14,7 @@ pub fn home(ctx: Context) -> Element(t) {
     Some(session) -> {
       case session.get_user(session) {
         Visitor -> "Not logged in"
-        Login(_, username) -> "Logged in as " <> username
+        Login(_, _, username, _) -> "Logged in as " <> username
       }
     }
   }

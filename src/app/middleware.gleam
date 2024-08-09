@@ -70,6 +70,6 @@ pub fn require_login(
         wisp.Signed,
         callback_url_cookie_timeout,
       )
-    Login(_, _) -> handler(req, ctx)
+    Login(..) -> handler(req, ctx)
   }
 }
