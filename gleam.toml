@@ -33,6 +33,7 @@ feather = ">= 1.1.0 and < 2.0.0"
 cake = ">= 1.0.1 and < 2.0.0"
 decode = ">= 0.2.0 and < 1.0.0"
 argus = ">= 1.0.1 and < 2.0.0"
+dot_env = ">= 1.1.0 and < 2.0.0"
 
 [dev-dependencies]
 gleeunit = ">= 1.0.0 and < 2.0.0"

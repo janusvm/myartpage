@@ -7,6 +7,7 @@ packages = [
   { name = "birl", version = "1.7.1", build_tools = ["gleam"], requirements = ["gleam_stdlib", "ranger"], otp_app = "birl", source = "hex", outer_checksum = "5C66647D62BCB11FE327E7A6024907C4A17954EF22865FE0940B54A852446D01" },
   { name = "cake", version = "1.0.1", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "cake", source = "hex", outer_checksum = "2ED23B98F04EAA594148A8072746385B8ED77E0288F7AF30F7D9180FDAF620D5" },
   { name = "decode", version = "0.2.0", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "decode", source = "hex", outer_checksum = "965F517F67B8C172CA27A5C8E34C73733139E8C9E64736181B8C3179281F9793" },
+  { name = "dot_env", version = "1.1.0", build_tools = ["gleam"], requirements = ["gleam_stdlib", "simplifile"], otp_app = "dot_env", source = "hex", outer_checksum = "C791917FDA9B75AF26923C17CE2BC15469E1B2C79D9D9F3D0882B3C531EE6337" },
   { name = "esqlite", version = "0.8.8", build_tools = ["rebar3"], requirements = [], otp_app = "esqlite", source = "hex", outer_checksum = "374902457C7D94DC9409C98D3BDD1CA0D50A60DC9F3BDF1FD8EB74C0DCDF02D6" },
   { name = "exception", version = "2.0.0", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "exception", source = "hex", outer_checksum = "F5580D584F16A20B7FCDCABF9E9BE9A2C1F6AC4F9176FA6DD0B63E3B20D450AA" },
   { name = "feather", version = "1.1.0", build_tools = ["gleam"], requirements = ["argv", "filepath", "gleam_erlang", "gleam_otp", "gleam_stdlib", "gloml", "justin", "puddle", "simplifile", "sqlight"], otp_app = "feather", source = "hex", outer_checksum = "5A30CDE3E8694FD4B5EC58FACA035A658CFF945A4480A86256D0B56FD6C5CEC9" },
@@ -43,6 +44,7 @@ packages = [
 argus = { version = ">= 1.0.1 and < 2.0.0" }
 cake = { version = ">= 1.0.1 and < 2.0.0" }
 decode = { version = ">= 0.2.0 and < 1.0.0" }
+dot_env = { version = ">= 1.1.0 and < 2.0.0" }
 feather = { version = ">= 1.1.0 and < 2.0.0" }
 gleam_erlang = { version = ">= 0.25.0 and < 1.0.0" }
 gleam_http = { version = ">= 3.6.0 and < 4.0.0" }
