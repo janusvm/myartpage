@@ -1,4 +1,4 @@
-import app/model/id.{type Id}
+import app/model/id.{type Uid}
 import app/model/user.{type User, Visitor}
 import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Subject}
@@ -6,30 +6,33 @@ import gleam/option.{None, Some}
 import gleam/otp/actor.{type Next, type StartError}
 import gleam/result
 
+pub type SessionId =
+  Uid(Session)
+
 pub opaque type Session {
-  Session(id: Id(Session), user: User)
+  Session(id: SessionId, user: User)
 }
 
 pub type SessionManager =
   Subject(SessionMsg)
 
 pub type SessionMsg {
-  Get(session_id: Id(Session), reply_with: Subject(Result(Session, Nil)))
+  Get(session_id: SessionId, reply_with: Subject(Result(Session, Nil)))
   Create(session: Session)
   Authenticate(session: Session, user: User)
-  Drop(session_id: Id(Session))
+  Drop(session_id: SessionId)
   Reset
 }
 
 type SessionStore =
-  Dict(Id(Session), Session)
+  Dict(Uid(Session), Session)
 
 pub fn get_user(session: Session) -> User {
   session.user
 }
 
 pub fn serialize_session(session: Session) -> String {
-  id.id_to_string(session.id)
+  id.uid_to_string(session.id)
 }
 
 pub fn get_or_create_session(
@@ -38,7 +41,7 @@ pub fn get_or_create_session(
 ) -> Session {
   let session =
     session_cookie
-    |> result.then(id.id_from_string)
+    |> result.then(id.parse_uid)
     |> result.then(get_session(_, session_manager))
 
   case session {
@@ -52,14 +55,14 @@ pub fn init_manager() -> Result(SessionManager, StartError) {
 }
 
 pub fn get_session(
-  session_id: Id(Session),
+  session_id: SessionId,
   session_manager: SessionManager,
 ) -> Result(Session, Nil) {
   actor.call(session_manager, Get(session_id, _), 10)
 }
 
 pub fn create_session(session_manager: SessionManager) -> Session {
-  let new_session = Session(id.new_id(), Visitor)
+  let new_session = Session(id.new_uid(), Visitor)
   actor.send(session_manager, Create(new_session))
   new_session
 }
@@ -87,7 +90,7 @@ fn handle_message(
       let f = fn(x) {
         case x {
           Some(session) -> Session(..session, user: user)
-          None -> Session(id.new_id(), user)
+          None -> Session(id.new_uid(), user)
         }
       }
       dict.upsert(sessions, session.id, f)

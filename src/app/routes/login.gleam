@@ -1,7 +1,6 @@
 import app/middleware
 import app/model/context.{type Context, Context}
-import app/model/id
-import app/model/user.{Login}
+import app/model/user
 import app/state/session
 import app/utils
 import app/views/login
@@ -11,9 +10,6 @@ import gleam/option.{Some}
 import gleam/result
 import gleam/string_builder
 import wisp.{type Request, type Response}
-
-// FIXME: replace hardcoded test user with real user store
-const test_user = #("admin", "admin")
 
 pub fn login_routes(
   path_segments: List(String),
@@ -43,11 +39,10 @@ fn attempt_login(req: Request, ctx: Context) -> Response {
 
   case parsed {
     Error(_) -> wisp.bad_request()
-    Ok(user) -> {
-      case user == test_user {
-        True -> {
+    Ok(#(username, password) as user) -> {
+      case user.get_login(ctx.db, username, password) {
+        Ok(user) -> {
           let assert Some(session) = ctx.session
-          let user = Login(id.new_id(), user.Admin, user.1, "")
           let redirect_url =
             wisp.get_cookie(
               req,
@@ -59,7 +54,7 @@ fn attempt_login(req: Request, ctx: Context) -> Response {
           session.authenticate_user(user, session, ctx.session_manager)
           wisp.redirect(redirect_url)
         }
-        False ->
+        Error(_) ->
           string_builder.from_string("Incorrect username/password!")
           |> wisp.html_response(401)
       }

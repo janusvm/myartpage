@@ -1,12 +1,14 @@
 import app/model/id.{type Id}
 import app/utils
-import beecrypt
+import argus
 import cake
 import cake/dialect/sqlite_dialect
 import cake/insert as i
-import gleam/dynamic
+import cake/select as s
+import cake/where as w
+import decode
 import gleam/list
-import sqlight
+import sqlight.{type Connection}
 
 pub type UserId =
   Id(User)
@@ -16,22 +18,112 @@ pub type UserLevel {
   Admin
 }
 
-pub type User {
-  Visitor
-  Login(id: UserId, level: UserLevel, username: String, password_hash: String)
+pub type Password {
+  Password(hash: String, salt: String)
 }
 
-pub fn create_user(db: sqlight.Connection, username: String, password: String) {
-  let password_hash = beecrypt.hash(password)
+pub type User {
+  Visitor
+  Login(id: UserId, level: UserLevel, username: String, password: Password)
+}
+
+fn user_level_to_string(level: UserLevel) {
+  case level {
+    Reader -> "reader"
+    Admin -> "admin"
+  }
+}
+
+fn user_decoder() {
+  decode.into({
+    use id <- decode.parameter
+    use level <- decode.parameter
+    use username <- decode.parameter
+    use hash <- decode.parameter
+    use salt <- decode.parameter
+
+    Login(id:, level:, username:, password: Password(hash:, salt:))
+  })
+  |> decode.field(0, id.id_decoder())
+  |> decode.field(1, user_level_decoder())
+  |> decode.field(2, decode.string)
+  |> decode.field(3, decode.string)
+  |> decode.field(4, decode.string)
+}
+
+fn user_level_decoder() {
+  decode.string
+  |> decode.then(fn(decoded_string) {
+    case decoded_string {
+      "reader" -> decode.into(Reader)
+      "admin" -> decode.into(Admin)
+      _ -> decode.fail("UserLevel")
+    }
+  })
+}
+
+pub fn get_login(
+  db: Connection,
+  username: String,
+  password: String,
+) -> Result(User, Nil) {
+  let prp_stm =
+    s.new()
+    |> s.selects([
+      s.col("id"),
+      s.col("level"),
+      s.col("username"),
+      s.col("password_hash"),
+      s.col("password_salt"),
+    ])
+    |> s.from_table("user")
+    |> s.where(w.eq(w.col("username"), w.string(username)))
+    |> s.limit(1)
+    |> s.to_query()
+    |> sqlite_dialect.query_to_prepared_statement()
+
+  let sql = cake.get_sql(prp_stm)
+  let db_params =
+    prp_stm
+    |> cake.get_params()
+    |> list.map(utils.map_sql_param_type)
+
+  let result = sqlight.query(sql, db, db_params, decode.from(user_decoder(), _))
+  case result {
+    Ok([Login(password: pw, ..) as unauthenticated_user]) -> {
+      let assert Ok(hashed) = argus.hash(argus.hasher(), password, pw.salt)
+      case hashed.encoded_hash == pw.hash {
+        True -> Ok(unauthenticated_user)
+        False -> Error(Nil)
+      }
+    }
+    // TODO: add error codes?
+    _ -> Error(Nil)
+  }
+}
+
+pub fn create_user(
+  db: Connection,
+  level: UserLevel,
+  username: String,
+  password: String,
+) {
+  let salt = argus.gen_salt()
+  let assert Ok(hash) = argus.hash(argus.hasher(), password, salt)
   let prp_stm =
     [
-      [i.string("admin"), i.string(username), i.string(password_hash)]
+      [
+        i.string(user_level_to_string(level)),
+        i.string(username),
+        i.string(hash.encoded_hash),
+        i.string(argus.gen_salt()),
+      ]
       |> i.row(),
     ]
     |> i.from_values(table_name: "user", columns: [
-      "level", "username", "password_hash",
+      "level", "username", "password_hash", "password_salt",
     ])
-    |> i.returning(["id", "level", "username", "password_hash", "created_at"])
+    |> i.returning(["id", "level", "username", "password_hash", "password_salt"])
     |> i.to_query()
     |> sqlite_dialect.write_query_to_prepared_statement()
 
@@ -41,40 +133,5 @@ pub fn create_user(db: sqlight.Connection, username: String, password: String) {
     |> cake.get_params()
     |> list.map(utils.map_sql_param_type)
 
-  sqlight.query(sql, db, db_params, get_user_decoder())
-}
-
-fn get_user_decoder() {
-  let level_decoder =
-    dynamic.decode1(
-      fn(level) {
-        case level {
-          "admin" -> Admin
-          _ -> Reader
-        }
-      },
-      dynamic.string,
-    )
-
-  dynamic.decode5(
-    map_user_type,
-    dynamic.element(0, dynamic.int),
-    dynamic.element(1, level_decoder),
-    dynamic.element(2, dynamic.string),
-    dynamic.element(3, dynamic.string),
-    dynamic.element(4, dynamic.string),
-  )
-}
-
-fn map_user_type(
-  id: Int,
-  level: UserLevel,
-  username: String,
-  password_hash: String,
-  created_at: String,
-) {
-  case level {
-    _ -> Visitor
-    // "admin" -> Login(id:, username:, password_hash:)
-  }
+  sqlight.query(sql, db, db_params, decode.from(user_decoder(), _))
 }

@@ -31,8 +31,8 @@ logging = ">= 1.3.0 and < 2.0.0"
 sqlight = ">= 0.9.0 and < 1.0.0"
 feather = ">= 1.1.0 and < 2.0.0"
 cake = ">= 1.0.1 and < 2.0.0"
-beecrypt = ">= 0.3.1 and < 1.0.0"
-birl = ">= 1.7.1 and < 2.0.0"
+decode = ">= 0.2.0 and < 1.0.0"
+argus = ">= 1.0.1 and < 2.0.0"
 
 [dev-dependencies]
 gleeunit = ">= 1.0.0 and < 2.0.0"

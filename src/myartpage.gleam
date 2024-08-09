@@ -25,8 +25,9 @@ pub fn main() {
 
   use db <- feather.with_connection(db_config)
 
-  let _ =
-    user.create_user(db, "admin", "admin")
+  // TODO: for debugging, remove
+  let _admin_create =
+    user.create_user(db, user.Admin, "admin", "admin")
     |> io.debug()
 
   let session_manager =
