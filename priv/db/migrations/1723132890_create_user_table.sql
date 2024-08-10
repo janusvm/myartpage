@@ -8,6 +8,8 @@ create table if not exists user (
     updated_at text not null default (datetime('now'))
 ) strict;
 
+create index idx_user_level on user (level);
+
 create trigger if not exists trg_user_updated_at
     before update on user
     for each row

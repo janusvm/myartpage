@@ -7,7 +7,10 @@ import cake/insert as i
 import cake/select as s
 import cake/where as w
 import decode
+import gleam/bool
+import gleam/dynamic
 import gleam/list
+import gleam/result
 import sqlight.{type Connection}
 
 pub type UserId =
@@ -62,6 +65,35 @@ fn user_level_decoder() {
   })
 }
 
+pub fn parse_user_level(level: String) {
+  user_level_decoder()
+  |> decode.from(dynamic.from(level))
+}
+
+/// Returns `True` if any user with level `Admin` is present in the database.
+///
+pub fn admin_exists(db: Connection) -> Bool {
+  let prp_stm =
+    s.new()
+    |> s.select(s.col("1"))
+    |> s.from_table("user")
+    |> s.where(w.eq(w.col("level"), w.string(user_level_to_string(Admin))))
+    |> s.limit(1)
+    |> s.to_query()
+    |> sqlite_dialect.query_to_prepared_statement()
+
+  let sql = cake.get_sql(prp_stm)
+  let db_params =
+    prp_stm
+    |> cake.get_params()
+    |> list.map(utils.map_sql_param_type)
+
+  sqlight.query(sql, db, db_params, dynamic.dynamic)
+  |> result.unwrap([])
+  |> list.is_empty()
+  |> bool.negate()
+}
+
 pub fn get_login(
   db: Connection,
   username: String,
@@ -107,7 +139,7 @@ pub fn create_user(
   level: UserLevel,
   username: String,
   password: String,
-) {
+) -> Result(User, Nil) {
   let salt = argus.gen_salt()
   let assert Ok(hash) = argus.hash(argus.hasher(), password, salt)
   let prp_stm =
@@ -116,7 +148,7 @@ pub fn create_user(
         i.string(user_level_to_string(level)),
         i.string(username),
         i.string(hash.encoded_hash),
-        i.string(argus.gen_salt()),
+        i.string(salt),
       ]
       |> i.row(),
     ]
@@ -134,4 +166,6 @@ pub fn create_user(
     |> list.map(utils.map_sql_param_type)
 
   sqlight.query(sql, db, db_params, decode.from(user_decoder(), _))
+  |> result.nil_error
+  |> result.then(list.first)
 }

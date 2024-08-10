@@ -50,6 +50,17 @@ pub fn wrap_session(
   )
 }
 
+pub fn require_admin_exists(
+  req: Request,
+  ctx: Context,
+  handler: fn(Request, Context) -> Response,
+) -> Response {
+  case user.admin_exists(ctx.db) {
+    False -> wisp.redirect("/signup?level=admin")
+    True -> handler(req, ctx)
+  }
+}
+
 pub fn require_login(
   req: Request,
   ctx: Context,
