@@ -10,6 +10,7 @@ pub type AppConfig {
     secret_key_base: String,
     session_timeout: Int,
     sqlite_uri: String,
+    admin_otp: String,
   )
 }
 
@@ -55,5 +56,16 @@ pub fn get_env_config() -> AppConfig {
     env.get_string("SQLITE_URI")
     |> result.unwrap("file:./myartpage-database.db?cache=shared")
 
-  AppConfig(port:, secret_key_base:, session_timeout:, sqlite_uri:)
+  let admin_otp = case env.get_string("ADMIN_OTP") {
+    Ok(otp) -> otp
+    Error(_) -> {
+      let otp = wisp.random_string(8)
+      wisp.log_warning(
+        "No value found for ADMIN_OTP, using a generated one: " <> otp,
+      )
+      otp
+    }
+  }
+
+  AppConfig(port:, secret_key_base:, session_timeout:, sqlite_uri:, admin_otp:)
 }

@@ -1,3 +1,4 @@
+import app/middleware
 import app/model/context.{type Context, Context}
 import app/model/user.{type UserLevel, Admin}
 import app/state/session
@@ -8,6 +9,7 @@ import gleam/http.{Get, Post}
 import gleam/list
 import gleam/option.{Some}
 import gleam/result
+import gleam/string_builder
 import wisp.{type Request, type Response}
 
 pub fn signup_routes(
@@ -36,15 +38,13 @@ fn attempt_signup(level: UserLevel, req: Request, ctx: Context) -> Response {
       "confirm-password",
     ))
     use otp <- result.try(list.key_find(formdata.values, "signup-otp"))
-    use <- bool.guard(
-      when: new_password != confirm_password,
-      return: Error(Nil),
-    )
-    Ok(#(username, new_password, otp))
+    use <- bool.guard(new_password != confirm_password, Error(Nil))
+    use <- bool.guard(otp != ctx.config.admin_otp, Error(Nil))
+    Ok(#(username, new_password))
   }
 
   {
-    use #(username, password, _otp) <- result.try(parsed)
+    use #(username, password) <- result.try(parsed)
     use new_user <- result.try(user.create_user(
       ctx.db,
       level,
@@ -53,8 +53,11 @@ fn attempt_signup(level: UserLevel, req: Request, ctx: Context) -> Response {
     ))
     let assert Some(session) = ctx.session
     session.authenticate_user(new_user, session, ctx.session_manager)
-    Ok(new_user)
+    Ok(middleware.get_callback_url_cookie(req))
   }
-  |> result.map(fn(_) { wisp.redirect("/") })
-  |> result.unwrap(wisp.bad_request())
+  |> result.map(wisp.redirect)
+  |> result.unwrap(wisp.html_response(
+    string_builder.from_string("Error during signup"),
+    400,
+  ))
 }
