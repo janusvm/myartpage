@@ -2,7 +2,7 @@ import app/middleware
 import app/model/context.{type Context, Context}
 import app/model/user
 import app/state/session
-import app/utils
+import app/utils/html_utils as utils
 import app/views/login
 import gleam/http.{Get, Post}
 import gleam/list
@@ -43,13 +43,7 @@ fn attempt_login(req: Request, ctx: Context) -> Response {
       case user.get_login(ctx.db, username, password) {
         Ok(user) -> {
           let assert Some(session) = ctx.session
-          let redirect_url =
-            wisp.get_cookie(
-              req,
-              middleware.callback_url_cookie_name,
-              wisp.Signed,
-            )
-            |> result.unwrap("/")
+          let redirect_url = middleware.get_callback_url_cookie(req)
 
           session.authenticate_user(user, session, ctx.session_manager)
           wisp.redirect(redirect_url)

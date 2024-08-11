@@ -1,11 +1,9 @@
 import app/database
 import app/model/config
-import app/model/user
 import app/state/session
 import app/web
 import feather
 import gleam/erlang/process
-import gleam/io
 import gleam/otp/supervisor
 import logging
 import wisp
@@ -23,11 +21,6 @@ pub fn main() {
     database.migrate_database(db_config, priv_dir <> database.migrations_subdir)
 
   use db <- feather.with_connection(db_config)
-
-  // TODO: for debugging, remove
-  let _admin_create =
-    user.create_user(db, user.Admin, "admin", "admin")
-    |> io.debug()
 
   let session_manager =
     supervisor.worker(fn(_) { session.init_manager() })

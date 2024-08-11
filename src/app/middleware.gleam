@@ -2,6 +2,7 @@ import app/model/context.{type Context, Context}
 import app/model/user.{Login, Visitor}
 import app/state/session
 import gleam/option.{Some}
+import gleam/result
 import wisp.{type Request, type Response}
 
 pub const session_cookie_name = "myartpage.session"
@@ -50,6 +51,19 @@ pub fn wrap_session(
   )
 }
 
+pub fn require_admin_exists(
+  req: Request,
+  ctx: Context,
+  handler: fn(Request, Context) -> Response,
+) -> Response {
+  case user.admin_exists(ctx.db) {
+    False ->
+      wisp.redirect("/signup")
+      |> set_callback_url_cookie(req, req.path)
+    True -> handler(req, ctx)
+  }
+}
+
 pub fn require_login(
   req: Request,
   ctx: Context,
@@ -63,13 +77,23 @@ pub fn require_login(
   case user {
     Visitor ->
       wisp.redirect("/login")
-      |> wisp.set_cookie(
-        req,
-        callback_url_cookie_name,
-        req.path,
-        wisp.Signed,
-        callback_url_cookie_timeout,
-      )
+      |> set_callback_url_cookie(req, req.path)
     Login(..) -> handler(req, ctx)
   }
+}
+
+fn set_callback_url_cookie(resp: Response, req: Request, callback_url: String) {
+  wisp.set_cookie(
+    resp,
+    req,
+    callback_url_cookie_name,
+    callback_url,
+    wisp.Signed,
+    callback_url_cookie_timeout,
+  )
+}
+
+pub fn get_callback_url_cookie(req: Request) {
+  wisp.get_cookie(req, callback_url_cookie_name, wisp.Signed)
+  |> result.unwrap("/")
 }

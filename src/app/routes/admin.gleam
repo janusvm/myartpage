@@ -8,6 +8,7 @@ pub fn admin_routes(
   req: Request,
   ctx: Context,
 ) -> Response {
+  use req, ctx <- middleware.require_admin_exists(req, ctx)
   use _req, _ctx <- middleware.require_login(req, ctx)
 
   case path_segments {
