@@ -118,3 +118,58 @@ pub fn login_form() -> Element(a) {
     ],
   )
 }
+
+pub fn signup_form() -> Element(a) {
+  h.div(
+    [a.class("flex min-h-full flex-col justify-center px-6 py-12 lg:px-8")],
+    [
+      h.div([a.class("sm:mx-auto sm:w-full sm:max-w-sm")], [
+        h.h2(
+          [
+            a.class(
+              "mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900",
+            ),
+          ],
+          [e.text("Create admin account")],
+        ),
+      ]),
+      h.div([a.class("mt-10 sm:mx-auto sm:w-full sm:max-w-sm")], [
+        h.form([a.class("space-y-6"), a.action("/signup"), a.method("POST")], [
+          labelled_input_field(
+            "Username",
+            "username",
+            "text",
+            [a.autocomplete("username"), a.autofocus(True), a.required(True)],
+            [],
+            [],
+          ),
+          labelled_input_field(
+            "Choose password",
+            "new-password",
+            "password",
+            [a.autocomplete("new-password"), a.required(True)],
+            [],
+            [],
+          ),
+          labelled_input_field(
+            "Confirm password",
+            "confirm-password",
+            "password",
+            [a.autocomplete("new-password"), a.required(True)],
+            [],
+            [],
+          ),
+          labelled_input_field(
+            "One-time setup code",
+            "signup-otp",
+            "text",
+            [a.autocomplete("one-time-code"), a.required(True)],
+            [],
+            [],
+          ),
+          h.div([], [button.submit_button("Create account", [])]),
+        ]),
+      ]),
+    ],
+  )
+}

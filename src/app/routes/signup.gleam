@@ -3,7 +3,7 @@ import app/model/context.{type Context, Context}
 import app/model/user.{type UserLevel, Admin}
 import app/state/session
 import app/utils/html_utils as utils
-import app/views/signup as views
+import app/views/components/form
 import gleam/bool
 import gleam/http.{Get, Post}
 import gleam/list
@@ -18,7 +18,7 @@ pub fn signup_routes(
   ctx: Context,
 ) -> Response {
   case req.method {
-    Get -> [views.signup_view()] |> utils.response()
+    Get -> [form.signup_form()] |> utils.response()
     Post -> attempt_signup(Admin, req, ctx)
     _ -> wisp.method_not_allowed([Get, Post])
   }
