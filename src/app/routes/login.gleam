@@ -2,7 +2,7 @@ import app/middleware
 import app/model/context.{type Context, Context}
 import app/model/user
 import app/state/session
-import app/utils
+import app/utils/html_utils as utils
 import app/views/login
 import gleam/http.{Get, Post}
 import gleam/list

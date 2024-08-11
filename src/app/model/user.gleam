@@ -1,14 +1,13 @@
 import app/model/id.{type Id}
-import app/utils
+import app/utils/sql_utils as sql
 import argus
-import cake
-import cake/dialect/sqlite_dialect
 import cake/insert as i
 import cake/select as s
 import cake/where as w
 import decode
 import gleam/bool
 import gleam/dynamic
+import gleam/io
 import gleam/list
 import gleam/result
 import sqlight.{type Connection}
@@ -73,22 +72,14 @@ pub fn parse_user_level(level: String) {
 /// Returns `True` if any user with level `Admin` is present in the database.
 ///
 pub fn admin_exists(db: Connection) -> Bool {
-  let prp_stm =
-    s.new()
-    |> s.select(s.col("1"))
-    |> s.from_table("user")
-    |> s.where(w.eq(w.col("level"), w.string(user_level_to_string(Admin))))
-    |> s.limit(1)
-    |> s.to_query()
-    |> sqlite_dialect.query_to_prepared_statement()
-
-  let sql = cake.get_sql(prp_stm)
-  let db_params =
-    prp_stm
-    |> cake.get_params()
-    |> list.map(utils.map_sql_param_type)
-
-  sqlight.query(sql, db, db_params, dynamic.dynamic)
+  s.new()
+  |> s.select(s.col("1"))
+  |> s.from_table("user")
+  |> s.where(w.eq(w.col("level"), w.string(user_level_to_string(Admin))))
+  |> s.limit(1)
+  |> s.to_query()
+  |> sql.execute_read(db, decode.dynamic)
+  |> io.debug
   |> result.unwrap([])
   |> list.is_empty()
   |> bool.negate()
@@ -99,7 +90,7 @@ pub fn get_login(
   username: String,
   password: String,
 ) -> Result(User, Nil) {
-  let prp_stm =
+  case
     s.new()
     |> s.selects([
       s.col("id"),
@@ -112,16 +103,9 @@ pub fn get_login(
     |> s.where(w.eq(w.col("username"), w.string(username)))
     |> s.limit(1)
     |> s.to_query()
-    |> sqlite_dialect.query_to_prepared_statement()
-
-  let sql = cake.get_sql(prp_stm)
-  let db_params =
-    prp_stm
-    |> cake.get_params()
-    |> list.map(utils.map_sql_param_type)
-
-  let result = sqlight.query(sql, db, db_params, decode.from(user_decoder(), _))
-  case result {
+    |> sql.execute_read(db, user_decoder())
+    |> io.debug
+  {
     Ok([Login(password: pw, ..) as unauthenticated_user]) -> {
       let assert Ok(hashed) = argus.hash(argus.hasher(), password, pw.salt)
       case hashed.encoded_hash == pw.hash {
@@ -142,30 +126,22 @@ pub fn create_user(
 ) -> Result(User, Nil) {
   let salt = argus.gen_salt()
   let assert Ok(hash) = argus.hash(argus.hasher(), password, salt)
-  let prp_stm =
-    [
-      [
-        i.string(user_level_to_string(level)),
-        i.string(username),
-        i.string(hash.encoded_hash),
-        i.string(salt),
-      ]
-      |> i.row(),
-    ]
-    |> i.from_values(table_name: "user", columns: [
-      "level", "username", "password_hash", "password_salt",
-    ])
-    |> i.returning(["id", "level", "username", "password_hash", "password_salt"])
-    |> i.to_query()
-    |> sqlite_dialect.write_query_to_prepared_statement()
 
-  let sql = cake.get_sql(prp_stm)
-  let db_params =
-    prp_stm
-    |> cake.get_params()
-    |> list.map(utils.map_sql_param_type)
-
-  sqlight.query(sql, db, db_params, decode.from(user_decoder(), _))
+  [
+    i.string(user_level_to_string(level)),
+    i.string(username),
+    i.string(hash.encoded_hash),
+    i.string(salt),
+  ]
+  |> i.row()
+  |> list.wrap()
+  |> i.from_values(table_name: "user", columns: [
+    "level", "username", "password_hash", "password_salt",
+  ])
+  |> i.returning(["id", "level", "username", "password_hash", "password_salt"])
+  |> i.to_query()
+  |> sql.execute_write(db, user_decoder())
+  |> io.debug
   |> result.nil_error
   |> result.then(list.first)
 }

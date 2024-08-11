@@ -1,3 +1,4 @@
+import app/utils/rng_utils as rng
 import dot_env as dot
 import dot_env/env
 import feather
@@ -36,6 +37,7 @@ pub fn get_db_config(app_config: AppConfig) {
 /// - `SECRET_KEY_BASE`: the key used to sign cookies (default: randomly generated at startup, which invalidates all cookies every restart)
 /// - `SESSION_TIMEOUT`: the time in seconds that session cookies are valid for (default: a year)
 /// - `SQLITE_URI`: filename with options for SQLite (default: "file:./myartpage-database.db?cache=shared")
+/// - `ADMIN_OTP`: one-time password used for registering the admin account (default: generated and displayed in log)
 ///
 pub fn get_env_config() -> AppConfig {
   dot.load_default()
@@ -44,9 +46,15 @@ pub fn get_env_config() -> AppConfig {
     env.get_int("PORT")
     |> result.unwrap(3000)
 
-  let secret_key_base =
-    env.get_string("SECRET_KEY_BASE")
-    |> result.unwrap(wisp.random_string(64))
+  let secret_key_base = case env.get_string("SECRET_KEY_BASE") {
+    Ok(key) -> key
+    Error(_) -> {
+      wisp.log_warning(
+        "No value found for SECRET_KEY_BASE, using a generated one. All sessions will be invalidated if the server is restarted.",
+      )
+      rng.random_alphanumerics(64)
+    }
+  }
 
   let session_timeout =
     env.get_int("SESSION_TIMEOUT")
@@ -59,7 +67,7 @@ pub fn get_env_config() -> AppConfig {
   let admin_otp = case env.get_string("ADMIN_OTP") {
     Ok(otp) -> otp
     Error(_) -> {
-      let otp = wisp.random_string(8)
+      let otp = rng.random_numerics(6)
       wisp.log_warning(
         "No value found for ADMIN_OTP, using a generated one: " <> otp,
       )
