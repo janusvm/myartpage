@@ -3,7 +3,7 @@ import app/model/context.{type Context, Context}
 import app/model/user
 import app/state/session
 import app/utils/html_utils as utils
-import app/views/login
+import app/views/components/form
 import gleam/http.{Get, Post}
 import gleam/list
 import gleam/option.{Some}
@@ -19,7 +19,7 @@ pub fn login_routes(
   case path_segments {
     [] -> {
       case req.method {
-        Get -> [login.login_view()] |> utils.response()
+        Get -> [form.login_form()] |> utils.response()
         Post -> attempt_login(req, ctx)
         _ -> wisp.method_not_allowed([Get, Post])
       }

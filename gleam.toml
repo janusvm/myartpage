@@ -16,6 +16,13 @@ version = "0.0.1"
 migrations_dir = "./priv/db/migrations"
 schemafile = "./priv/db/schema.sql"
 
+[tailwind]
+args = [
+  "--config=tailwind.config.js",
+  "--input=./src/css/app.css",
+  "--output=./priv/static/css/app.css",
+]
+
 [dependencies]
 gleam_stdlib = ">= 0.34.0 and < 2.0.0"
 wisp = ">= 0.16.0 and < 1.0.0"
@@ -38,3 +45,4 @@ prng = ">= 3.0.3 and < 4.0.0"
 
 [dev-dependencies]
 gleeunit = ">= 1.0.0 and < 2.0.0"
+glailglind = ">= 1.1.3 and < 2.0.0"
