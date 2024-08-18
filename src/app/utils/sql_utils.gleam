@@ -4,6 +4,7 @@ import cake/param.{
   type Param, BoolParam, FloatParam, IntParam, NullParam, StringParam,
 }
 import decode.{type Decoder}
+import gleam/int
 import gleam/list
 import sqlight.{type Connection, type Error}
 
@@ -43,4 +44,9 @@ pub fn execute_write(
     |> list.map(map_sql_param_type)
 
   sqlight.query(sql, db, params, decode.from(decoder, _))
+}
+
+pub fn sqlite_error_string(msg: String, error: Error) {
+  let err_code = error.code |> sqlight.error_code_to_int() |> int.to_string()
+  msg <> error.message <> "(error code: " <> err_code <> ")"
 }

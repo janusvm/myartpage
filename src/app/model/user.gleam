@@ -11,6 +11,7 @@ import gleam/io
 import gleam/list
 import gleam/result
 import sqlight.{type Connection}
+import wisp
 
 pub type UserId =
   Id(User)
@@ -72,24 +73,38 @@ pub fn parse_user_level(level: String) {
 /// Returns `True` if any user with level `Admin` is present in the database.
 ///
 pub fn admin_exists(db: Connection) -> Bool {
-  s.new()
-  |> s.select(s.col("1"))
-  |> s.from_table("user")
-  |> s.where(w.eq(w.col("level"), w.string(user_level_to_string(Admin))))
-  |> s.limit(1)
-  |> s.to_query()
-  |> sql.execute_read(db, decode.dynamic)
-  |> io.debug
-  |> result.unwrap([])
-  |> list.is_empty()
-  |> bool.negate()
+  let admin_users =
+    s.new()
+    |> s.select(s.col("1"))
+    |> s.from_table("user")
+    |> s.where(w.eq(w.col("level"), w.string(user_level_to_string(Admin))))
+    |> s.limit(1)
+    |> s.to_query()
+    |> sql.execute_read(db, decode.dynamic)
+
+  case admin_users {
+    Ok(users) -> users |> list.is_empty() |> bool.negate()
+    Error(e) -> {
+      sql.sqlite_error_string(
+        "An error occured while checking for admin user: ",
+        e,
+      )
+      |> wisp.log_error()
+      False
+    }
+  }
+}
+
+pub type LoginError {
+  NoSuchUser(username: String)
+  IncorrectPassword
 }
 
 pub fn get_login(
   db: Connection,
   username: String,
   password: String,
-) -> Result(User, Nil) {
+) -> Result(User, LoginError) {
   case
     s.new()
     |> s.selects([
@@ -104,17 +119,15 @@ pub fn get_login(
     |> s.limit(1)
     |> s.to_query()
     |> sql.execute_read(db, user_decoder())
-    |> io.debug
   {
     Ok([Login(password: pw, ..) as unauthenticated_user]) -> {
       let assert Ok(hashed) = argus.hash(argus.hasher(), password, pw.salt)
       case hashed.encoded_hash == pw.hash {
         True -> Ok(unauthenticated_user)
-        False -> Error(Nil)
+        False -> Error(IncorrectPassword)
       }
     }
-    // TODO: add error codes?
-    _ -> Error(Nil)
+    _ -> Error(NoSuchUser(username))
   }
 }
 

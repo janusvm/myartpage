@@ -1,7 +1,7 @@
 import app/model/context.{type Context, Context}
 import app/model/user.{Login, Visitor}
 import app/state/session
-import gleam/option.{Some}
+import gleam/option.{None, Some}
 import gleam/result
 import wisp.{type Request, type Response}
 
@@ -69,10 +69,10 @@ pub fn require_login(
   ctx: Context,
   handler: fn(Request, Context) -> Response,
 ) -> Response {
-  let user =
-    ctx.session
-    |> option.map(session.get_user)
-    |> option.unwrap(Visitor)
+  let user = case ctx.session {
+    Some(session) -> session.user
+    None -> Visitor
+  }
 
   case user {
     Visitor ->

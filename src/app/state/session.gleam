@@ -9,7 +9,7 @@ import gleam/result
 pub type SessionId =
   Uid(Session)
 
-pub opaque type Session {
+pub type Session {
   Session(id: SessionId, user: User)
 }
 
@@ -26,10 +26,6 @@ pub type SessionMsg {
 
 type SessionStore =
   Dict(Uid(Session), Session)
-
-pub fn get_user(session: Session) -> User {
-  session.user
-}
 
 pub fn serialize_session(session: Session) -> String {
   id.uid_to_string(session.id)
