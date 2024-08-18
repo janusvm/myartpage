@@ -17,8 +17,7 @@ pub fn main() {
   let app_config = config.get_env_config()
   let db_config = config.get_db_config(app_config)
   let assert Ok(priv_dir) = wisp.priv_directory(app_name)
-  let assert Ok(_) =
-    database.migrate_database(db_config, priv_dir <> database.migrations_subdir)
+  database.migrate_database(db_config, priv_dir <> database.migrations_subdir)
 
   use db <- feather.with_connection(db_config)
 

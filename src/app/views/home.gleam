@@ -1,6 +1,5 @@
 import app/model/context.{type Context}
 import app/model/user.{Login, Visitor}
-import app/state/session
 import gleam/int
 import gleam/option.{None, Some}
 import lustre/attribute as a
@@ -12,7 +11,7 @@ pub fn home(ctx: Context) -> Element(t) {
   let message = case ctx.session {
     None -> "No session"
     Some(session) -> {
-      case session.get_user(session) {
+      case session.user {
         Visitor -> "Not logged in"
         Login(_, _, username, _) -> "Logged in as " <> username
       }

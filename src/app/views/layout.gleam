@@ -25,6 +25,7 @@ pub fn layout(elements: List(Element(a))) -> Element(a) {
         ),
       ]),
       h.link([a.rel("stylesheet"), a.href("/static/css/app.css")]),
+      h.script([a.src("https://unpkg.com/htmx.org@2.0.2")], ""),
     ]),
     h.body([hx.boost(True), a.class("h-full")], elements),
   ])
