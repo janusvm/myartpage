@@ -19,7 +19,7 @@ fn map_sql_param_type(param: Param) {
   }
 }
 
-fn get_rows(query_result: pgo.Returned(a)) -> List(a) {
+pub fn get_rows(query_result: pgo.Returned(a)) -> List(a) {
   query_result.rows
 }
 

@@ -12,10 +12,6 @@ version = "0.0.1"
 # For a full reference of all the available options, you can have a look at
 # https://gleam.run/writing-gleam/gleam-toml/.
 
-# Migrations
-migrations_dir = "./priv/db/migrations"
-schemafile = "./priv/db/schema.sql"
-
 [tailwind]
 args = [
   "--config=tailwind.config.js",
@@ -43,6 +39,7 @@ prng = ">= 3.0.3 and < 4.0.0"
 formal = ">= 2.0.0 and < 3.0.0"
 birl = ">= 1.7.1 and < 2.0.0"
 gleam_pgo = ">= 0.14.0 and < 1.0.0"
+simplifile = ">= 2.0.1 and < 3.0.0"
 
 [dev-dependencies]
 gleeunit = ">= 1.0.0 and < 2.0.0"

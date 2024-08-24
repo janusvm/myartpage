@@ -18,8 +18,7 @@ pub fn main() {
   let app_config = config.get_env_config()
   let db_config = config.get_db_config()
   let db = pgo.connect(db_config)
-  database.migrate_database(db_config, priv_dir <> database.migrations_subdir)
-  // use db <- database.with_connection(db_config)
+  let assert Ok(_) = database.migrate_database(db, priv_dir)
 
   let session_manager =
     supervisor.worker(fn(_) { session.init_manager() })
