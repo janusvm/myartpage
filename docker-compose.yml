@@ -1,0 +1,43 @@
+name: myartpage
+
+services:
+  app:
+    container_name: myartpage-app
+    build:
+      context: .
+      target: final
+    ports:
+      - '3000:3000'
+    environment:
+      - PORT=${PORT}
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE}
+      - SESSION_TIMEOUT=${SESSION_TIMEOUT}
+      - DB_PORT=${DB_PORT}
+      - DB_HOST=db
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+    depends_on:
+      - db
+
+  db:
+    container_name: myartpage-db
+    restart: always
+    image: 'postgres:16'
+    ports:
+      - '${DB_PORT}:5432'
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASS}
+      - POSTGRES_DB=${DB_NAME}
+
+  pgweb:
+    container_name: myartpage-pgweb
+    restart: always
+    image: sosedoff/pgweb
+    ports:
+      - '8081:8081'
+    environment:
+      - DATABASE_URL=postgres://${DB_USER}:${DB_PASS}@db/${DB_NAME}?sslmode=disable
+    depends_on:
+      - db
