@@ -8,6 +8,7 @@ import gleam/pgo.{type Connection}
 import gleam/result
 import gleam/string
 import simplifile
+import wisp
 
 pub fn with_connection(config: DbConfig, f: fn(Connection) -> Result(a, String)) {
   let conn = pgo.connect(config)
@@ -40,6 +41,7 @@ pub type MigrationError {
 }
 
 pub fn migrate_database(db: Connection, priv_dir: String) {
+  wisp.log_info("Running database migrations...")
   let migrations_path = priv_dir <> "/" <> migrations_subdir
   use migrations <- result.try(get_migrations(migrations_path))
 
@@ -54,6 +56,7 @@ pub fn migrate_database(db: Connection, priv_dir: String) {
       |> list.try_each(apply_migration(_, conn)),
     )
 
+    wisp.log_info("Database migrations succesfully applied")
     Ok(Nil)
   }
   |> result.map_error(TransactionError)
@@ -85,12 +88,13 @@ fn apply_migration(
 
   use <- bool.guard(when: already_applied, return: Ok(Nil))
 
-  use _apply_patch <- result.try(
+  use _apply_patch <- result.try({
+    wisp.log_info("Applying migration: " <> migration.name)
     pgo.execute(migration.patch, conn, [], dynamic.dynamic)
     |> result.replace_error(
       "Error occured while applying migration: " <> migration.name,
-    ),
-  )
+    )
+  })
 
   use _register_patch <- result.try(
     "insert into migrations (name, applied) values ($1, $2);"

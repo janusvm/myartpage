@@ -1,9 +1,9 @@
 import app/utils/rng_utils as rng
-import dot_env as dot
 import dot_env/env
+import gleam/function
+import gleam/int
 import gleam/option
 import gleam/pgo
-import gleam/result
 import wisp
 
 pub type AppConfig {
@@ -18,25 +18,6 @@ pub type AppConfig {
 pub type DbConfig =
   pgo.Config
 
-fn get_or_panic(key: String, getter: fn(String) -> Result(a, String)) -> a {
-  let result = getter(key)
-  case result {
-    Ok(value) -> {
-      wisp.log_info(
-        "Succesfully read config variable `" <> key <> "` from environment",
-      )
-      value
-    }
-    Error(_) -> {
-      panic as {
-        "Environment variable "
-        <> key
-        <> " is missing or invalid, cannot start app"
-      }
-    }
-  }
-}
-
 /// Retrieve the database configuration from environment variables or .env file.
 ///
 /// The following options must be present, or the function panics:
@@ -48,22 +29,54 @@ fn get_or_panic(key: String, getter: fn(String) -> Result(a, String)) -> a {
 /// - `DB_NAME`: the name of the database to connect to
 ///
 pub fn get_db_config() -> DbConfig {
-  dot.load_default()
+  let config = {
+    use db_port <- get_or_error("DB_PORT", env.get_int, int.to_string)
+    use db_host <- get_or_error("DB_HOST", env.get_string, function.identity)
+    use db_user <- get_or_error("DB_USER", env.get_string, function.identity)
+    use db_pass <- get_or_error("DB_PASS", env.get_string, function.identity)
+    use db_name <- get_or_error("DB_NAME", env.get_string, function.identity)
 
-  let db_port = get_or_panic("DB_PORT", env.get_int)
-  let db_host = get_or_panic("DB_HOST", env.get_string)
-  let db_user = get_or_panic("DB_USER", env.get_string)
-  let db_pass = get_or_panic("DB_PASS", env.get_string)
-  let db_name = get_or_panic("DB_NAME", env.get_string)
+    Ok(
+      pgo.Config(
+        ..pgo.default_config(),
+        host: db_host,
+        port: db_port,
+        database: db_name,
+        user: db_user,
+        password: option.Some(db_pass),
+      ),
+    )
+  }
 
-  pgo.Config(
-    ..pgo.default_config(),
-    host: db_host,
-    port: db_port,
-    database: db_name,
-    user: db_user,
-    password: option.Some(db_pass),
-  )
+  case config {
+    Ok(config) -> config
+    Error(_) -> panic as "Unable to load database configuration, aborting"
+  }
+}
+
+fn get_or_error(
+  key: String,
+  getter: fn(String) -> Result(a, String),
+  serializer: fn(a) -> String,
+  apply: fn(a) -> Result(b, Nil),
+) -> Result(b, Nil) {
+  let result = getter(key)
+  case result {
+    Ok(value) -> {
+      wisp.log_info(
+        "Read database config option " <> key <> "=" <> serializer(value),
+      )
+      apply(value)
+    }
+    Error(_) -> {
+      wisp.log_error(
+        "Required config option "
+        <> key
+        <> " is missing or invalid. Check your environment variable setup.",
+      )
+      Error(Nil)
+    }
+  }
 }
 
 /// Retrieve the app configuration from environment variables or .env file.
@@ -76,36 +89,58 @@ pub fn get_db_config() -> DbConfig {
 /// - `ADMIN_OTP`: one-time password used for registering the admin account (default: generated and displayed in log)
 ///
 pub fn get_env_config() -> AppConfig {
-  dot.load_default()
+  // Hardcoded as Dockerfile depends on it
+  let port = 3000
 
-  let port =
-    env.get_int("PORT")
-    |> result.unwrap(3000)
-
-  let secret_key_base = case env.get_string("SECRET_KEY_BASE") {
-    Ok(key) -> key
-    Error(_) -> {
-      wisp.log_warning(
-        "No value found for SECRET_KEY_BASE, using a generated one. All sessions will be invalidated if the server is restarted.",
-      )
-      rng.random_alphanumerics(64)
-    }
-  }
+  let secret_key_base =
+    get_or_default(
+      "SECRET_KEY_BASE",
+      rng.random_alphanumerics(64),
+      env.get_string,
+      function.identity,
+    )
 
   let session_timeout =
-    env.get_int("SESSION_TIMEOUT")
-    |> result.unwrap(31_536_000)
+    get_or_default(
+      "SESSION_TIMEOUT",
+      60 * 60 * 24 * 365,
+      env.get_int,
+      int.to_string,
+    )
 
-  let admin_otp = case env.get_string("ADMIN_OTP") {
-    Ok(otp) -> otp
-    Error(_) -> {
-      let otp = rng.random_numerics(6)
-      wisp.log_warning(
-        "No value found for ADMIN_OTP, using a generated one: " <> otp,
-      )
-      otp
-    }
-  }
+  let admin_otp =
+    get_or_default(
+      "ADMIN_OTP",
+      rng.random_numerics(6),
+      env.get_string,
+      function.identity,
+    )
 
   AppConfig(port:, secret_key_base:, session_timeout:, admin_otp:)
+}
+
+fn get_or_default(
+  key: String,
+  default: a,
+  getter: fn(String) -> Result(a, String),
+  serializer: fn(a) -> String,
+) -> a {
+  let result = getter(key)
+  case result {
+    Ok(value) -> {
+      wisp.log_info(
+        "Read environment variable " <> key <> "=" <> serializer(value),
+      )
+      value
+    }
+    Error(_) -> {
+      wisp.log_warning(
+        "Optional config option "
+        <> key
+        <> " is missing or invalid, using default value: "
+        <> serializer(default),
+      )
+      default
+    }
+  }
 }

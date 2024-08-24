@@ -2,6 +2,7 @@ import app/database
 import app/model/config
 import app/state/session
 import app/web
+import dot_env
 import gleam/erlang/process
 import gleam/otp/supervisor
 import gleam/pgo
@@ -13,6 +14,7 @@ const app_name = "myartpage"
 pub fn main() {
   logging.configure()
   logging.set_level(logging.Debug)
+  dot_env.load_default()
 
   let assert Ok(priv_dir) = wisp.priv_directory(app_name)
   let app_config = config.get_env_config()

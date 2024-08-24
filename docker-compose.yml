@@ -5,11 +5,12 @@ services:
     container_name: myartpage-app
     build:
       context: .
+      dockerfile: Dockerfile
       target: final
+    restart: always
     ports:
       - '3000:3000'
     environment:
-      - PORT=${PORT}
       - SECRET_KEY_BASE=${SECRET_KEY_BASE}
       - SESSION_TIMEOUT=${SESSION_TIMEOUT}
       - DB_PORT=${DB_PORT}
@@ -19,6 +20,12 @@ services:
       - DB_PASS=${DB_PASS}
     depends_on:
       - db
+    develop:
+      watch:
+        - action: rebuild
+          path: .
+          ignore:
+            - build/
 
   db:
     container_name: myartpage-db
