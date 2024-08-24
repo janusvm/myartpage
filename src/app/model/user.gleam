@@ -9,8 +9,8 @@ import gleam/bool
 import gleam/dynamic
 import gleam/io
 import gleam/list
+import gleam/pgo.{type Connection}
 import gleam/result
-import sqlight.{type Connection}
 import wisp
 
 pub type UserId =
@@ -85,10 +85,7 @@ pub fn admin_exists(db: Connection) -> Bool {
   case admin_users {
     Ok(users) -> users |> list.is_empty() |> bool.negate()
     Error(e) -> {
-      sql.sqlite_error_string(
-        "An error occured while checking for admin user: ",
-        e,
-      )
+      sql.pgo_error_string("An error occured while checking for admin user", e)
       |> wisp.log_error()
       False
     }

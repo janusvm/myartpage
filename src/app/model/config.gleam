@@ -1,7 +1,8 @@
 import app/utils/rng_utils as rng
 import dot_env as dot
 import dot_env/env
-import feather
+import gleam/option
+import gleam/pgo
 import gleam/result
 import wisp
 
@@ -16,16 +17,43 @@ pub type AppConfig {
 }
 
 pub type DbConfig =
-  feather.Config
+  pgo.Config
 
-pub fn get_db_config(app_config: AppConfig) {
-  feather.Config(
-    ..feather.default_config(),
-    file: app_config.sqlite_uri,
-    // TODO: temporary dev options, remove
-    journal_mode: feather.JournalOff,
-    synchronous: feather.SyncOff,
-    temp_store: feather.TempStoreMemory,
+fn get_or_panic(key: String, getter: fn(String) -> Result(a, String)) -> a {
+  let result = getter(key)
+  case result {
+    Ok(value) -> {
+      wisp.log_info(
+        "Succesfully read config variable `" <> key <> "` from environment",
+      )
+      value
+    }
+    Error(_) -> {
+      panic as {
+        "Environment variable "
+        <> key
+        <> " is missing or invalid, cannot start app"
+      }
+    }
+  }
+}
+
+pub fn get_db_config() -> DbConfig {
+  dot.load_default()
+
+  let db_port = get_or_panic("DB_PORT", env.get_int)
+  let db_host = get_or_panic("DB_HOST", env.get_string)
+  let db_user = get_or_panic("DB_USER", env.get_string)
+  let db_pass = get_or_panic("DB_PASS", env.get_string)
+  let db_name = get_or_panic("DB_NAME", env.get_string)
+
+  pgo.Config(
+    ..pgo.default_config(),
+    host: db_host,
+    port: db_port,
+    database: db_name,
+    user: db_user,
+    password: option.Some(db_pass),
   )
 }
 
