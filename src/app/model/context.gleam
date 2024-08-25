@@ -1,7 +1,7 @@
 import app/model/config.{type AppConfig}
 import app/state/session.{type Session, type SessionManager}
 import gleam/option.{type Option}
-import sqlight.{type Connection}
+import gleam/pgo.{type Connection}
 
 pub type Context {
   Context(

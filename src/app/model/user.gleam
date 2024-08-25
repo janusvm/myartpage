@@ -7,10 +7,9 @@ import cake/where as w
 import decode
 import gleam/bool
 import gleam/dynamic
-import gleam/io
 import gleam/list
+import gleam/pgo.{type Connection}
 import gleam/result
-import sqlight.{type Connection}
 import wisp
 
 pub type UserId =
@@ -76,7 +75,7 @@ pub fn admin_exists(db: Connection) -> Bool {
   let admin_users =
     s.new()
     |> s.select(s.col("1"))
-    |> s.from_table("user")
+    |> s.from_table("users")
     |> s.where(w.eq(w.col("level"), w.string(user_level_to_string(Admin))))
     |> s.limit(1)
     |> s.to_query()
@@ -85,10 +84,7 @@ pub fn admin_exists(db: Connection) -> Bool {
   case admin_users {
     Ok(users) -> users |> list.is_empty() |> bool.negate()
     Error(e) -> {
-      sql.sqlite_error_string(
-        "An error occured while checking for admin user: ",
-        e,
-      )
+      sql.pgo_error_string("An error occured while checking for admin user", e)
       |> wisp.log_error()
       False
     }
@@ -114,7 +110,7 @@ pub fn get_login(
       s.col("password_hash"),
       s.col("password_salt"),
     ])
-    |> s.from_table("user")
+    |> s.from_table("users")
     |> s.where(w.eq(w.col("username"), w.string(username)))
     |> s.limit(1)
     |> s.to_query()
@@ -148,13 +144,12 @@ pub fn create_user(
   ]
   |> i.row()
   |> list.wrap()
-  |> i.from_values(table_name: "user", columns: [
+  |> i.from_values(table_name: "users", columns: [
     "level", "username", "password_hash", "password_salt",
   ])
   |> i.returning(["id", "level", "username", "password_hash", "password_salt"])
   |> i.to_query()
   |> sql.execute_write(db, user_decoder())
-  |> io.debug
   |> result.nil_error
   |> result.then(list.first)
 }

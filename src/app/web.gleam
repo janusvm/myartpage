@@ -5,9 +5,9 @@ import app/state/session.{type SessionManager}
 import gleam/dynamic
 import gleam/option.{None}
 import gleam/otp/actor.{type StartError}
+import gleam/pgo.{type Connection}
 import gleam/result
 import mist
-import sqlight.{type Connection}
 import wisp
 
 pub fn init(

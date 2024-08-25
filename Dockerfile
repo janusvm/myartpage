@@ -5,9 +5,8 @@ RUN apk update && apk add build-base
 
 # Copy source and build an Erlang shipment
 WORKDIR /build
-COPY . /build/
-RUN cd /build \
-  && gleam export erlang-shipment \
+COPY . .
+RUN gleam export erlang-shipment \
   && mv build/erlang-shipment /app \
   && rm -r /build
 
@@ -18,5 +17,5 @@ COPY --from=build /app /app
 # Set up for running
 EXPOSE 3000
 WORKDIR /app
-ENTRYPOINT ["/app/entrypoint.sh"]
+ENTRYPOINT ["./entrypoint.sh"]
 CMD ["run"]
